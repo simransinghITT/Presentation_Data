@@ -1,0 +1,50 @@
+- name: Install Jenkins
+  hosts: localhost
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python
+  tasks:
+    - name: Install java-1.8 and wget.
+      yum:
+        name:
+          - wget
+          - java-1.8.0-openjdk
+        state: latest
+    - name: Correct the alternatives to change default Java version.
+      alternatives:
+        name: java
+        link: /usr/bin/java
+        path: "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.242.b08-0.50.amzn1.x86_64/jre/bin/java"
+    - name: Download jenkins.repo
+      get_url:
+        url: http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+
+    - name: Import Jenkins Key
+      rpm_key:
+        state: present
+        key: https://jenkins-ci.org/redhat/jenkins-ci.org.key
+
+    - name: Install Jenkins
+      yum:
+        name: jenkins
+        state: present
+
+    - name: Start & Enable Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: true
+
+    - name: Sleep for 30 seconds and continue with play
+      wait_for: timeout=30
+
+    - name: Get init password Jenkins
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      changed_when: false
+      register: result
+
+    - name: Print init password Jenkins
+      debug:
+        var: result.stdout
+                                               
